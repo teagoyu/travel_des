@@ -51,8 +51,17 @@ export default function TripHero({ plan, theme = "childhood" }: { plan: TripPlan
           <span>山海之间 · 自驾路书</span>
           <span>{request.origin} → {request.destination.replace(/^.*·\s*/, "")}</span>
         </div>
-        <div className="travel-editorial-hero__cities" aria-label="沿途城市">
-          {cities.map((city, index) => <div key={`${city}-${index}`} className="travel-editorial-hero__city"><span className="travel-editorial-hero__city-icon" aria-hidden="true">{index === 0 ? "✈" : index === cities.length - 1 ? "⌂" : "•"}</span><strong>{city}</strong><small>{index === 0 ? "出发" : index === cities.length - 1 ? "终点" : `DAY ${String(index + 1).padStart(2, "0")}`}</small></div>)}
+        <div className="travel-editorial-hero__cities" aria-label="沿途城市路线">
+          {cities.map((city, index) => {
+            const state = index === 0 ? "出发" : index === cities.length - 1 ? "终点" : `DAY ${String(index + 1).padStart(2, "0")}`;
+            return (
+              <div key={`${city}-${index}`} className="travel-editorial-hero__city">
+                <span className="travel-editorial-hero__city-icon" aria-hidden="true">{index === 0 ? "✈" : index === cities.length - 1 ? "⌂" : "•"}</span>
+                <strong className="travel-editorial-hero__city-name">{city}</strong>
+                <small className="travel-editorial-hero__city-state">{state}</small>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
