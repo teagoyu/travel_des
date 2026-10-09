@@ -193,6 +193,53 @@ body[data-travel-theme] .travel-topbar .btn:hover { border-color: #a85cc7; backg
 .plan-theme .travel-editorial-hero__city strong, .plan-theme .travel-editorial-hero__city small { display: block; }
 .plan-theme .travel-editorial-hero__city strong { margin-top: 3px; font-size: 14px; }
 .plan-theme .travel-editorial-hero__city small { margin-top: 3px; color: #65809a; font-size: 10px; letter-spacing: .12em; }
+.plan-theme .travel-editorial-hero__cities {
+  gap: 12px;
+  margin-top: 28px;
+  padding: 7px 4px 14px;
+  scrollbar-color: #a85cc7aa transparent;
+}
+.plan-theme .travel-editorial-hero__city {
+  position: relative;
+  min-width: 148px;
+  padding: 14px 16px 15px;
+  border: 1px solid rgba(78,115,186,.3);
+  border-radius: 17px;
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 10px 22px rgba(78,115,186,.13);
+}
+.plan-theme .travel-editorial-hero__city:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -13px;
+  width: 12px;
+  border-top: 2px dashed #a85cc799;
+}
+.plan-theme .travel-editorial-hero__city-icon {
+  min-height: 21px;
+  color: #a85cc7;
+  font-size: 19px;
+  line-height: 1;
+}
+.plan-theme .travel-editorial-hero__city-name {
+  display: block;
+  margin-top: 7px;
+  color: #15385d;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  line-height: 1.25;
+}
+.plan-theme .travel-editorial-hero__city-state {
+  display: block;
+  margin-top: 7px;
+  color: #4e73ba;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.3;
+}
 @media (max-width: 700px) {
   .plan-theme .travel-editorial-hero__character { right: -24px; bottom: 120px; width: 132px; opacity: .7; }
   .plan-theme .travel-editorial-hero__cities { margin-right: -17px; }
@@ -1046,5 +1093,107 @@ a:focus-visible {
   }
   .daily-editorial-card > .my-6 > div {
     padding-right: 12px !important;
+  }
+}
+
+/* 每日行程入口：提高中文标题与日期导航的识别度 */
+.daily-reading .daily-reading-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 22px 22px;
+  border: 1px solid #c79c4f66;
+  border-left: 4px solid #b77d32;
+  border-radius: 18px 18px 6px 18px;
+  background: linear-gradient(135deg, #fffaf0e8, #f0eadccc);
+  box-shadow: 0 12px 30px #80652c14;
+}
+
+.daily-reading .daily-reading-heading .section-kicker {
+  margin-bottom: 7px;
+  color: #9a6827;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+
+.daily-reading .daily-reading-heading h2 {
+  color: #17231e;
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.daily-reading-subtitle {
+  margin: 6px 0 0;
+  color: #5f6d64;
+  font-size: 13px;
+}
+
+.daily-reading-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex: none;
+  border: 1px solid #b77d3299;
+  border-radius: 999px;
+  padding: 10px 14px;
+  color: #81561f;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color .2s ease, transform .2s ease;
+}
+
+.daily-reading-jump:hover {
+  background: #f4dfb599;
+  transform: translateY(-1px);
+}
+
+.daily-reading-jump-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #b77d32;
+  box-shadow: 0 0 0 4px #b77d3224;
+}
+
+.daily-reading .day-chapter-nav {
+  margin-top: 16px;
+  border-bottom: 2px solid #b77d325c;
+  padding-bottom: 13px;
+}
+
+.daily-reading .day-chapter-link {
+  color: #58675e;
+  font-weight: 600;
+}
+
+.daily-reading .day-chapter-link span {
+  color: #a06e2e;
+  font-size: 11px;
+}
+
+.daily-reading .day-chapter-link strong {
+  color: #26382e;
+  font-size: 13px;
+}
+
+@media (max-width: 620px) {
+  .daily-reading .daily-reading-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+    padding: 17px 16px 18px;
+  }
+
+  .daily-reading .daily-reading-heading h2 {
+    font-size: 31px;
+  }
+
+  .daily-reading-jump {
+    font-size: 11px;
   }
 }

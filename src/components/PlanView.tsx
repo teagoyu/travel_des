@@ -247,14 +247,20 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
           </div>
 
             <section id="daily" aria-labelledby="daily-title" className="daily-reading relative">
-            <div className="section-kicker">DAY BY DAY</div>
-            <div className="flex items-end justify-between gap-4 max-sm:block">
-              <h2 id="daily-title" className="serif m-0 text-[34px] font-medium max-sm:text-[29px]">
-                每天怎么走
-              </h2>
-              <p className="m-0 text-xs text-soft max-sm:mt-1">按日期顺序阅读完整路书</p>
+            <div className="daily-reading-heading">
+              <div>
+                <div className="section-kicker">DAY BY DAY · 每日行程</div>
+                <h2 id="daily-title" className="serif m-0 text-[34px] font-medium max-sm:text-[29px]">
+                  每日行程
+                </h2>
+                <p className="daily-reading-subtitle">按日期顺序查看路线、停留与当天安排</p>
+              </div>
+              <a className="daily-reading-jump" href="#daily">
+                <span className="daily-reading-jump-dot" aria-hidden="true" />
+                共 {plan.days.length} 天 · 点击日期查看
+              </a>
             </div>
-            <div className="day-chapter-nav" aria-label="选择行程日期">
+            <div className="day-chapter-nav" aria-label="每日行程导航">
               {plan.days.map((day, index) => (
                 <button
                   key={`${day.date}-nav`}
