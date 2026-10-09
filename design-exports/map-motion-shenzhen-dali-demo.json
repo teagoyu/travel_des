@@ -1,0 +1,39 @@
+{
+  "size": "portrait",
+  "style": "journal",
+  "shots": [
+    {
+      "type": "title",
+      "text": "深圳到大理",
+      "sub": "6 天 · 自驾返程路线",
+      "dur": 2
+    },
+    {
+      "type": "trip",
+      "stops": [
+        "深圳",
+        "南宁",
+        "昆明",
+        "大理",
+        "百色",
+        "深圳"
+      ],
+      "stamp": true,
+      "return": false,
+      "dates": {
+        "南宁": "10.16",
+        "昆明": "10.17",
+        "大理": "10.18",
+        "百色": "10.20"
+      }
+    },
+    {
+      "type": "overview",
+      "dur": 2.5,
+      "title": {
+        "text": "先到百色住一晚，再回深圳",
+        "pos": "bottom"
+      }
+    }
+  ]
+}
