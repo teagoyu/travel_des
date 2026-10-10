@@ -24,12 +24,12 @@ export default function HomePage() {
           <div id="plan-form">
             <CreateTripForm />
           </div>
-          <div className="mb-20 mt-14 grid gap-7 md:grid-cols-3 max-md:mb-16 max-md:mt-10">
+          <div className="home-steps mb-20 mt-14 grid gap-7 md:grid-cols-3 max-md:mb-16 max-md:mt-10">
             {STEPS.map((step) => (
-              <div key={step.no} className="max-md:border-t max-md:border-line max-md:pt-4">
-                <b className="serif text-sm text-gold">{step.no}</b>
-                <h3 className="serif mb-2 mt-1.5 text-xl font-medium">{step.title}</h3>
-                <p className="m-0 text-[13px] leading-[1.8] text-muted">{step.body}</p>
+              <div key={step.no} className="home-step max-md:border-t max-md:border-line max-md:pt-4">
+                <b className="home-step__number serif text-sm">{step.no}</b>
+                <h3 className="home-step__title serif mb-2 mt-1.5 text-xl font-medium">{step.title}</h3>
+                <p className="home-step__body m-0 text-[13px] leading-[1.8]">{step.body}</p>
               </div>
             ))}
           </div>

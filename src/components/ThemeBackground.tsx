@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ThemeVariant } from "@/lib/theme";
 import { getTravelThemeTokens, type TravelTheme } from "@/lib/theme";
 
@@ -29,7 +30,7 @@ export default function ThemeBackground({ theme, variant = "home" }: Props) {
       <span className="theme-background__route" />
       <span className="theme-background__sticker theme-background__sticker--one">✦</span>
       <span className="theme-background__sticker theme-background__sticker--two">✦</span>
-      <img className="theme-background__character" src={`/themes/${theme}/character.svg`} alt="" />
+      <Image priority className="theme-background__character" src={`/themes/${theme}/character.svg`} width={300} height={420} sizes="150px" alt="" />
       <div className="theme-background__traveler">
         <span className="theme-background__traveler-hat" />
         <span className="theme-background__traveler-head" />

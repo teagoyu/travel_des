@@ -11,16 +11,12 @@ export default function DayDetail({
   dayNumber,
   onEdit,
   onPlanB,
-  planId,
-  readOnly = false,
   theme = "childhood",
 }: {
   day: DayPlan;
   dayNumber: number; // 1-based
   onEdit: () => void;
   onPlanB: () => void;
-  planId?: string;
-  readOnly?: boolean;
   theme?: TravelTheme;
 }) {
   const legsDistance = day.legs.reduce((sum, leg) => sum + (leg.distanceKm ?? 0), 0);
@@ -235,8 +231,7 @@ function formatScheduleDescription(description: string): string {
 
 function formatDriveHours(minutes: number): string {
   if (minutes <= 0) return "待核验";
-  if (minutes < 60) return `约 ${minutes} 分钟`;
-  return `约 ${(minutes / 60).toFixed(1)} 小时`;
+  return formatDuration(minutes);
 }
 
 function intensityLabel(minutes: number): string {

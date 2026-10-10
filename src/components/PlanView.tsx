@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 import TripHero from "@/components/TripHero";
@@ -15,11 +16,11 @@ import ShareCard from "@/components/ShareCard";
 import ThemeBackground from "@/components/ThemeBackground";
 import Modal, { type ModalConfig } from "@/components/Modal";
 import { showToast } from "@/components/Toast";
-import { getTravelTheme, getTravelThemeTokens, type TravelTheme } from "@/lib/theme";
+import { getTravelThemeTokens, type TravelTheme } from "@/lib/theme";
 import type { TripPlan } from "@/lib/types";
 
 /** 路书详情交互区：日期导航 + 每日详情 + 调整弹窗（阶段 B：修改意图走 revisions API） */
-export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; readOnly?: boolean }) {
+export default function PlanView({ plan, readOnly = false, initialTheme = "childhood" }: { plan: TripPlan; readOnly?: boolean; initialTheme?: TravelTheme }) {
   const router = useRouter();
   const [selectedDay, setSelectedDay] = useState(0);
   const [modal, setModal] = useState<ModalConfig | null>(null);
@@ -29,16 +30,17 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
   const [shareImageName, setShareImageName] = useState("旅行路线.png");
   const [animationJob, setAnimationJob] = useState<{ jobId: string; status: string; progress?: number; mp4Url?: string; gifUrl?: string; error?: string } | null>(null);
-  const [theme, setTheme] = useState<TravelTheme>("childhood");
+  const [animationPreviewOpen, setAnimationPreviewOpen] = useState(false);
+  const [theme, setTheme] = useState<TravelTheme>(initialTheme);
+  const [themeReady] = useState(true);
+  const animationAutoStartedRef = useRef(false);
   const shareTargetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const initial = getTravelTheme(params.get("theme"));
-    setTheme(initial);
-    document.body.dataset.travelTheme = initial;
+    setTheme(initialTheme);
+    document.body.dataset.travelTheme = initialTheme;
     return () => { delete document.body.dataset.travelTheme; };
-  }, []);
+  }, [initialTheme]);
 
   const generateShareImage = async () => {
     if (!shareTargetRef.current || shareBusy) return;
@@ -116,17 +118,23 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
     }
   };
 
-  const generateRouteAnimation = async () => {
+  const generateRouteAnimation = async (force = true) => {
     if (readOnly || animationJob?.status === "queued" || animationJob?.status === "rendering") return;
+    animationAutoStartedRef.current = true;
     setAnimationJob({ jobId: "pending", status: "queued", progress: 0 });
     try {
-      const res = await fetch(`/api/plans/${encodeURIComponent(plan.id)}/animation`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme }) });
+      const res = await fetch(`/api/plans/${encodeURIComponent(plan.id)}/animation`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme, force }) });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error?.message ?? `HTTP ${res.status}`);
       const data = (await res.json()) as { jobId: string; status: string };
       setAnimationJob(data);
     } catch (error) {
       setAnimationJob({ jobId: "error", status: "failed", error: error instanceof Error ? error.message : "生成失败" });
     }
+  };
+
+  const retryRouteAnimation = () => {
+    setAnimationJob(null);
+    void generateRouteAnimation(true);
   };
 
   useEffect(() => {
@@ -144,15 +152,34 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
   }, [animationJob?.jobId, animationJob?.status]);
 
   useEffect(() => {
-    if (readOnly || animationJob) return;
-    void fetch(`/api/plans/${encodeURIComponent(plan.id)}/animation`, { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) return;
-        const job = await res.json() as { jobId?: string; status: string; progress?: number; mp4Url?: string; gifUrl?: string; error?: string };
-        if (job?.jobId) setAnimationJob({ ...job, jobId: job.jobId });
-      })
-      .catch(() => undefined);
-  }, [animationJob, plan.id, readOnly]);
+    const startAnimationIfNeeded = async () => {
+      if (!themeReady || readOnly || animationAutoStartedRef.current) return;
+      animationAutoStartedRef.current = true;
+      try {
+        const existing = await fetch(`/api/plans/${encodeURIComponent(plan.id)}/animation`, { cache: "no-store" });
+        if (existing.ok) {
+          const job = await existing.json() as { jobId?: string; status: string; progress?: number; mp4Url?: string; gifUrl?: string; error?: string };
+          if (job.jobId) {
+            setAnimationJob({ ...job, jobId: job.jobId });
+            return;
+          }
+        }
+        if (existing.status !== 404) return;
+        setAnimationJob({ jobId: "pending", status: "queued", progress: 0 });
+        const created = await fetch(`/api/plans/${encodeURIComponent(plan.id)}/animation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme }),
+        });
+        if (!created.ok) throw new Error((await created.json().catch(() => null))?.error?.message ?? `HTTP ${created.status}`);
+        const job = await created.json() as { jobId: string; status: string; progress?: number };
+        setAnimationJob(job);
+      } catch (error) {
+        setAnimationJob({ jobId: "error", status: "failed", error: error instanceof Error ? error.message : "生成失败" });
+      }
+    };
+    void startAnimationIfNeeded();
+  }, [plan.id, readOnly, theme, themeReady]);
 
   const submitRevision = async (instruction: string, targetDay = selectedDay) => {
     if (readOnly) { showToast("示例路书仅供浏览，请创建自己的路书后调整行程"); return; }
@@ -226,7 +253,7 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
               {shareBusy ? "正在生成…" : "生成分享截图"}
             </button>
             <button type="button" className="btn btn-small" onClick={generateSocialPoster} disabled={shareBusy}>小红书长图</button>
-            <button type="button" className="btn btn-small" data-testid="map-motion-generate" onClick={generateRouteAnimation} disabled={readOnly || animationJob?.status === "queued" || animationJob?.status === "rendering"}>
+            <button type="button" className="btn btn-small" data-testid="map-motion-generate" onClick={() => generateRouteAnimation()} disabled={readOnly || animationJob?.status === "queued" || animationJob?.status === "rendering"}>
               {animationJob?.status === "rendering" ? `路线动画 ${animationJob.progress ?? 0}%` : "生成路线动画"}
             </button>
             <button type="button" className="btn btn-small" onClick={copyShareCopy}>复制分享文案</button>
@@ -245,6 +272,40 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
           <div className="roadbook-overview">
             <RouteOverview plan={plan} />
           </div>
+
+          <section className="route-animation-panel mt-8 overflow-hidden rounded-[22px] border border-[#6e5933] bg-[#1b211c] shadow-[0_18px_50px_rgba(0,0,0,.2)]" aria-labelledby="route-animation-title">
+            <div className="route-animation-header flex items-start justify-between gap-4 border-b border-[#374138] px-5 py-4 max-sm:flex-col">
+              <div>
+                <div className="text-[10px] font-bold tracking-[0.24em] text-gold">ROUTE MOTION · 路线动画</div>
+                <h2 id="route-animation-title" className="serif mt-1 text-[25px] font-medium text-[#f2f0e8]">把这趟路，做成一段会动的手账</h2>
+                <p className="mt-1 text-xs leading-6 text-[#a5ada3]">后台自动生成，完成后可直接预览、下载或分享。</p>
+              </div>
+              <span className="route-animation-theme-badge shrink-0 rounded-full border border-[#6e5933] bg-[#2d291d] px-3 py-1.5 text-[11px] text-[#f2d7a2]">{getTravelThemeTokens(theme).shortLabel}主题</span>
+            </div>
+            <div className="p-5">
+              {!animationJob && <div data-testid="route-animation-status" className="rounded-xl border border-dashed border-[#526052] px-4 py-5 text-sm text-[#a5ada3]">{readOnly ? "示例路书仅供浏览，不自动生成动画。创建自己的路书后会在这里自动生成。" : "正在准备路线动画…"}</div>}
+              {animationJob?.status === "queued" || animationJob?.status === "rendering" ? (
+                <div data-testid="route-animation-status" className="route-animation-progress rounded-xl border border-[#526052] bg-[#141a16] px-4 py-5">
+                  <div className="flex items-center justify-between gap-3 text-sm text-[#f2f0e8]"><span>正在生成路线动画</span><strong className="text-[#e7c780]">{animationJob.progress ?? 0}%</strong></div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#303a31]"><div className="h-full rounded-full bg-[#e7c780] transition-[width] duration-500" style={{ width: `${Math.max(4, animationJob.progress ?? 0)}%` }} /></div>
+                  <p className="mt-2 text-xs text-[#7f897f]">地图路线、城市节点和卡通车辆正在合成，页面其他内容可以继续使用。</p>
+                </div>
+              ) : null}
+              {animationJob?.status === "complete" && (animationJob.gifUrl || animationJob.mp4Url) ? (
+                <div data-testid="route-animation-status" className="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px] md:items-center">
+                  <button type="button" className="route-animation-preview-button group overflow-hidden rounded-xl border border-[#526052] bg-[#101612] text-left" onClick={() => setAnimationPreviewOpen(true)}>
+                    {animationJob.gifUrl ? <Image src={animationJob.gifUrl} width={960} height={540} unoptimized alt="路线动画预览" className="aspect-video w-full object-cover transition duration-300 group-hover:scale-[1.02]" /> : <video src={animationJob.mp4Url} className="aspect-video w-full object-cover" muted playsInline />}
+                  </button>
+                  <div>
+                    <div className="text-sm font-semibold text-[#f2f0e8]">路线动画已生成</div>
+                    <p className="route-animation-copy mt-2 text-xs leading-6 text-[#a5ada3]">点击左侧预览放大查看，也可以下载 MP4 或 GIF 分享给同行的人。</p>
+                    <div className="mt-3 grid gap-2"><button type="button" className="btn btn-small" onClick={() => setAnimationPreviewOpen(true)}>放大预览</button><a className="btn btn-small text-center" href={animationJob.mp4Url} download>下载 MP4</a>{animationJob.gifUrl && <a className="btn btn-small text-center" href={animationJob.gifUrl} download>下载 GIF</a>}</div>
+                  </div>
+                </div>
+              ) : null}
+              {animationJob?.status === "failed" ? <div data-testid="route-animation-status" className="flex items-center justify-between gap-4 rounded-xl border border-[#8b603a] bg-[#2d291d] px-4 py-4 max-sm:flex-col max-sm:items-start"><div><div className="text-sm text-[#f2d7a2]">路线动画生成失败</div><p className="mt-1 text-xs text-[#c0a879]">{animationJob.error ?? "请稍后重试"}</p></div><button type="button" className="btn btn-small" onClick={retryRouteAnimation}>重新生成</button></div> : null}
+            </div>
+          </section>
 
             <section id="daily" aria-labelledby="daily-title" className="daily-reading relative">
             <div className="daily-reading-heading">
@@ -282,8 +343,6 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
                   <DayDetail
                     day={plan.days[selectedDay]}
                     dayNumber={selectedDay + 1}
-                    planId={readOnly ? undefined : plan.id}
-                    readOnly={readOnly}
                     onEdit={openEditModal}
                     onPlanB={() => openPlanBModal(selectedDay)}
                     theme={theme}
@@ -327,7 +386,7 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
               <button type="button" className="btn btn-small" onClick={() => setShareImageUrl(null)}>关闭</button>
             </div>
             <div className="max-h-[72vh] overflow-auto rounded-xl border border-line bg-[#101612] p-2">
-              <img src={shareImageUrl} alt="旅行路线分享截图预览" className="h-auto w-full" />
+              <Image src={shareImageUrl} width={1200} height={1600} unoptimized alt="旅行路线分享截图预览" className="h-auto w-full" />
             </div>
             <div className="mt-3 flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
               <span className="text-xs text-soft">图片已生成，点击下载即可保存到本地。</span>
@@ -336,11 +395,11 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
           </div>
         </div>
       )}
-      {animationJob?.status === "complete" && animationJob.mp4Url && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050806]/85 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="路线动画预览">
-          <div className="max-h-[92vh] w-full max-w-lg overflow-hidden rounded-2xl border border-line bg-[#172019] p-4 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold tracking-[0.2em] text-gold">ROUTE MOTION</div><h3 className="serif m-0 mt-1 text-xl">路线动画已生成</h3></div><button type="button" className="btn btn-small" onClick={() => setAnimationJob(null)}>关闭</button></div>
-            {animationJob.gifUrl ? <img className="max-h-[70vh] w-full rounded-xl border border-line bg-black object-contain" src={animationJob.gifUrl} alt="路线动画 GIF 预览" /> : <video className="max-h-[70vh] w-full rounded-xl border border-line bg-black" src={animationJob.mp4Url} controls playsInline />}
+      {animationPreviewOpen && animationJob?.status === "complete" && animationJob.mp4Url && (
+        <div className="route-animation-modal fixed inset-0 z-50 flex items-center justify-center bg-[#050806]/85 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="路线动画预览">
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-line bg-[#172019] p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold tracking-[0.2em] text-gold">ROUTE MOTION</div><h3 className="serif m-0 mt-1 text-xl">路线动画已生成</h3></div><button type="button" className="btn btn-small" onClick={() => setAnimationPreviewOpen(false)}>关闭</button></div>
+            {animationJob.gifUrl ? <Image className="route-animation-media max-h-[70vh] w-full rounded-xl border border-line bg-black object-contain" src={animationJob.gifUrl} width={960} height={540} unoptimized alt="路线动画 GIF 预览" /> : <video className="route-animation-media max-h-[70vh] w-full rounded-xl border border-line bg-black" src={animationJob.mp4Url} controls playsInline />}
             <div className="mt-2 text-xs text-soft">GIF 可直接预览，MP4 适合保存和分享。</div>
             <div className="mt-3 flex gap-2"><a className="btn btn-small flex-1 text-center" href={animationJob.mp4Url} download>下载 MP4</a>{animationJob.gifUrl && <a className="btn btn-small flex-1 text-center" href={animationJob.gifUrl} download>下载 GIF</a>}</div>
           </div>
@@ -350,10 +409,6 @@ export default function PlanView({ plan, readOnly = false }: { plan: TripPlan; r
       </div>
     </div>
   );
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character] ?? character));
 }
 
 function escapeXml(value: string): string {

@@ -1,11 +1,12 @@
 import type { TripPlan } from "@/lib/types";
+import { formatDuration } from "@/lib/tripForm";
 
 /** 侧栏"这趟旅行"摘要卡 */
 export default function TripSummary({ plan }: { plan: TripPlan }) {
   const durations = plan.days
     .flatMap((d) => d.legs.map((l) => l.durationMinutes ?? 0))
     .filter((m) => m > 0);
-  const maxHours = durations.length ? Math.max(...durations) / 60 : null;
+  const maxDrivingMinutes = durations.length ? Math.max(...durations) : null;
 
   return (
     <div className="side-card">
@@ -26,7 +27,7 @@ export default function TripSummary({ plan }: { plan: TripPlan }) {
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">最长单日驾驶</dt>
-          <dd className="m-0 font-medium">{maxHours === null ? "待核验" : `约 ${maxHours.toFixed(1)} 小时`}</dd>
+          <dd className="m-0 font-medium">{maxDrivingMinutes === null ? "待核验" : formatDuration(maxDrivingMinutes)}</dd>
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">旅行风格</dt>

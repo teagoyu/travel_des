@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { DayPlan, Recommendation } from "@/lib/types";
 import { getDayImageTheme } from "@/lib/dayTheme";
@@ -63,7 +64,7 @@ export default function RecommendationRail({ day, days, planId, readOnly = false
           const actualImage = sceneryImages[scenicDay.end.name];
           return <button key={scenicDay.dayIndex} type="button" className="group flex items-center gap-3 overflow-hidden rounded-[12px] border border-transparent bg-[#202a2388] p-2 text-left transition hover:-translate-y-0.5 hover:border-gold/60" onClick={() => document.getElementById(`day-detail-${scenicDay.dayIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
           <span className="relative block h-[58px] w-[78px] shrink-0 overflow-hidden rounded-[9px]">
-            <img src={actualImage ?? themeImages[getDayImageTheme(scenicDay, dayPosition)]} alt={`${scenicDay.end.name} 风景`} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+            <ResilientImage src={actualImage} fallbackImage={themeImages[getDayImageTheme(scenicDay, dayPosition)]} alt={`${scenicDay.end.name} 风景`} />
             <span className="scenery-photo-source absolute bottom-1 right-1 rounded bg-[#111812cc] px-1.5 py-0.5 text-[8px] text-[#f2d18b]">{actualImage ? "高德实景" : "主题图"}</span>
           </span>
           <span className="min-w-0"><span className="block text-[10px] font-bold tracking-[0.14em] text-gold">DAY {String(scenicDay.dayIndex).padStart(2, "0")}</span><strong className="mt-1 block truncate text-xs text-ink">{scenicDay.photoTips[0]?.title?.replace(/\s*·.*$/, "") ?? scenicDay.end.name}</strong><span className="mt-0.5 block truncate text-[10px] text-soft">{scenicDay.start.name} → {scenicDay.end.name}</span></span>
@@ -91,7 +92,7 @@ export default function RecommendationRail({ day, days, planId, readOnly = false
 function RailCard({ label, item, fallbackImage, emptyText }: { label: string; item: Recommendation | null; fallbackImage: string; emptyText?: string }) {
   return <article className="editorial-rail-card overflow-hidden rounded-[15px] border border-white/10 bg-[#202a2366]">
     <div className="relative h-[108px] overflow-hidden">
-      <img src={item?.imageUrl ?? fallbackImage} alt={item?.name ? `${item.name} 图片` : label} className="h-full w-full object-cover" />
+      <ResilientImage src={item?.imageUrl} fallbackImage={fallbackImage} alt={item?.name ? `${item.name} 图片` : label} />
       <div className="absolute inset-0 bg-gradient-to-t from-[#111812e8] via-transparent to-transparent" />
       <span className="absolute bottom-2 left-3 text-[10px] font-bold tracking-[0.16em] text-[#f2d18b]">{label}</span>
     </div>
@@ -101,6 +102,24 @@ function RailCard({ label, item, fallbackImage, emptyText }: { label: string; it
       {item?.navigationUrl && <a href={item.navigationUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-[11px] text-gold underline underline-offset-4">查看导航 ↗</a>}
     </div>
   </article>;
+}
+
+function ResilientImage({ src, fallbackImage, alt }: { src?: string; fallbackImage: string; alt: string }) {
+  const [imageSrc, setImageSrc] = useState(src ?? fallbackImage);
+
+  useEffect(() => {
+    setImageSrc(src ?? fallbackImage);
+  }, [src, fallbackImage]);
+
+  return <Image
+    src={imageSrc}
+    alt={alt}
+    fill
+    sizes="(max-width: 900px) 100vw, 320px"
+    unoptimized={imageSrc !== fallbackImage}
+    className="object-cover transition duration-500"
+    onError={() => setImageSrc(fallbackImage)}
+  />;
 }
 
 function fallbackAttraction(day: DayPlan): Recommendation | null {

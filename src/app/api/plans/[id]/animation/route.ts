@@ -24,7 +24,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const plan = getCurrentPlan(id);
   if (!plan) return jsonError(409, "PLAN_NOT_READY", "路书尚未生成完成");
   try {
-    const body = await request.json().catch(() => ({})) as { theme?: string };
+    const body = await request.json().catch(() => ({})) as { theme?: string; force?: boolean };
+    const existingJob = await findLatestMapMotionJob(id, sessionId);
+    if (body.force !== true && existingJob && ["queued", "rendering", "complete"].includes(existingJob.status)) {
+      return NextResponse.json({ ...existingJob, jobId: existingJob.id }, { status: existingJob.status === "complete" ? 200 : 202 });
+    }
     const job = await createMapMotionJob(plan, sessionId, body.theme as Parameters<typeof createMapMotionJob>[2]);
     return NextResponse.json({ jobId: job.id, status: job.status }, { status: 202 });
   } catch (error) {
