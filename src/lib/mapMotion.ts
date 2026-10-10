@@ -36,6 +36,30 @@ const outputDir = path.join(os.tmpdir(), "shanhai-map-motion");
 const artifactDir = path.join(os.homedir(), ".shanhai-roadbook", "map-motion");
 const skillRoot = path.join(os.homedir(), ".claude", "skills", "map-motion");
 
+const themeCopy: Record<TravelTheme, { opening: string; route: string; ending: string }> = {
+  childhood: {
+    opening: "出发吧，小小旅行家",
+    route: "一路发现 · 卡通自驾旅程",
+    ending: "把路上的风景带回家",
+  },
+  detective: {
+    opening: "线索已收集，出发探索",
+    route: "沿途线索 · 自驾调查路线",
+    ending: "案件完成 · 风景已确认",
+  },
+  fantasy: {
+    opening: "星光亮起，去远方",
+    route: "星光轨迹 · 梦幻自驾旅程",
+    ending: "下一站，继续追光",
+  },
+};
+
+const themeStyle: Record<TravelTheme, string> = {
+  childhood: "cartoon-childhood",
+  detective: "cartoon-detective",
+  fantasy: "cartoon-fantasy",
+};
+
 function jobStatePath(id: string): string {
   return path.join(outputDir, `${id}.job.json`);
 }
@@ -101,23 +125,49 @@ export async function createMapMotionJob(plan: TripPlan, sessionId: string, them
   const mp4Path = getMapMotionOutputPath(id, "mp4");
   const gifPath = getMapMotionOutputPath(id, "gif");
   const selectedTheme = getTravelTheme(theme);
+  const stops = plan.days.reduce<string[]>((names, day) => {
+    if (!names.includes(day.start.name)) names.push(day.start.name);
+    if (!names.includes(day.end.name)) names.push(day.end.name);
+    return names;
+  }, []);
   const spec = {
-    size: "portrait",
-    style: `cartoon-${selectedTheme}`,
+    size: "landscape",
+    // map-motion 自带纸张、云朵和手账纹理；按网站主题切换卡通底图。
+    // 路线仍使用高德数据计算，背景只改变视觉表现，不改变路线结果。
+    style: themeStyle[selectedTheme],
+    theme: selectedTheme,
     shots: [
-      { type: "title", text: `${plan.request.origin}到${plan.request.destination}`, sub: `${plan.request.days} 天 · 自驾路线`, dur: 2 },
+      {
+        type: "title",
+        text: `${plan.request.origin}到${plan.request.destination}`,
+        sub: `${themeCopy[selectedTheme].opening} · ${plan.request.days} 天自驾`,
+        dur: 2,
+      },
       {
         type: "trip",
-        stops: plan.days.reduce<string[]>((stops, day) => {
-          if (!stops.includes(day.start.name)) stops.push(day.start.name);
-          if (!stops.includes(day.end.name)) stops.push(day.end.name);
-          return stops;
-        }, []),
+        stops,
+        mode: "driving",
+        vehicle: "car",
         stamp: true,
+        days: true,
+        overview: false,
+        caption: {
+          text: themeCopy[selectedTheme].route,
+          sub: `${plan.days.length} 天 · ${stops.length} 个落脚点`,
+        },
+        stay: 2.2,
         return: Boolean(plan.request.returnTrip),
         dates: Object.fromEntries(plan.days.map((day) => [day.end.name, day.date.slice(5).replace("-", ".")])),
       },
-      { type: "overview", dur: 2.5, title: { text: "山海之间 · 自驾路书", pos: "bottom" } },
+      {
+        type: "overview",
+        dur: 2.5,
+        title: {
+          text: themeCopy[selectedTheme].ending,
+          sub: `${plan.request.origin} → ${plan.request.destination} · ${plan.request.days} 天`,
+          pos: "bottom",
+        },
+      },
     ],
   };
   await writeFile(specPath, JSON.stringify(spec, null, 2), "utf8");
@@ -134,7 +184,7 @@ export async function createMapMotionJob(plan: TripPlan, sessionId: string, them
   jobs.set(id, job);
   await persistJob(job);
   const script = path.join(skillRoot, "scripts", "make.sh");
-  const child = spawn(script, [specPath, mp4Path, "--gif", gifPath], {
+  const child = spawn(script, [specPath, mp4Path, "--gif", gifPath, "--gif-width", "960", "--gif-fps", "12"], {
     cwd: skillRoot,
     env: { ...process.env, AMAP_KEY: process.env.AMAP_API_KEY },
     stdio: ["ignore", "pipe", "pipe"],

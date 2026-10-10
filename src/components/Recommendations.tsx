@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { DayPlan, Recommendation } from "@/lib/types";
 
@@ -52,7 +53,7 @@ export default function Recommendations({ day, planId, readOnly = false }: { day
       {([["hotel", "住宿"], ["attraction", "景点"], ["restaurant", "餐厅"]] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setTab(value)} className={`rounded-full px-3 py-1.5 text-xs ${tab === value ? "bg-gold text-[#171610]" : "border border-line text-muted"}`}>{label}</button>)}
     </div>
     {loading ? <p className="py-5 text-sm text-muted">正在搜索附近推荐…</p> : items.length ? <div className="mt-4 grid gap-3 md:grid-cols-3">{items.slice(0, 3).map((item) => <article key={`${item.id ?? item.name}-${item.address ?? ""}`} className="overflow-hidden rounded-[14px] border border-line bg-panel2">
-      {tab === "attraction" && item.imageUrl && <div className="relative h-32 overflow-hidden"><img src={item.imageUrl} alt={`${item.name} 景色`} className="h-full w-full object-cover transition duration-500 hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-[#171e19]/70 to-transparent" /><span className="absolute bottom-2 left-3 text-[10px] tracking-[0.14em] text-[#f2d18b]">SCENIC STOP</span></div>}
+      {tab === "attraction" && item.imageUrl && <div className="relative h-32 overflow-hidden"><Image src={item.imageUrl} alt={`${item.name} 景色`} fill unoptimized sizes="(max-width: 900px) 100vw, 320px" className="object-cover transition duration-500 hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-[#171e19]/70 to-transparent" /><span className="absolute bottom-2 left-3 text-[10px] tracking-[0.14em] text-[#f2d18b]">SCENIC STOP</span></div>}
       <div className="p-4"><div className="flex items-start justify-between gap-2"><strong className="text-sm text-ink">{item.name}</strong>{item.rating && <span className="text-xs text-gold">★ {item.rating}</span>}</div>
       <p className="mt-2 min-h-10 text-xs leading-6 text-muted">{item.type ?? (tab === "hotel" ? "酒店" : tab === "restaurant" ? "餐厅" : "景点")} · {item.address ?? "地址待补充"}</p>
       {item.price && <div className="text-xs text-gold">{tab === "hotel" ? `${item.price}/晚` : `人均 ${item.price}`}</div>}

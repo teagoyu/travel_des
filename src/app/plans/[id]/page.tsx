@@ -7,6 +7,7 @@ import { getPlanRow, getPlanVersion, getChecklist } from "@/lib/db";
 import { SAMPLE_TRIP_PLAN } from "@/lib/fixtures";
 import { buildFixturePlan } from "@/lib/fixtureFactory";
 import type { TripPlan } from "@/lib/types";
+import { getTravelTheme } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "山海之间 · 路书详情",
@@ -18,10 +19,14 @@ export const metadata: Metadata = {
  */
 export default async function PlanDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ theme?: string }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
+  const initialTheme = getTravelTheme(query?.theme);
 
   // 公开示例路书（fixture 驱动，无会话要求）
   if (id === SAMPLE_TRIP_PLAN.id) {
@@ -29,7 +34,7 @@ export default async function PlanDetailPage({
       <>
         <TopBar />
         <main>
-          <PlanView plan={SAMPLE_TRIP_PLAN} readOnly />
+          <PlanView plan={SAMPLE_TRIP_PLAN} readOnly initialTheme={initialTheme} />
         </main>
       </>
     );
@@ -63,7 +68,7 @@ export default async function PlanDetailPage({
     <>
       <TopBar />
       <main>
-        <PlanView plan={withChecklist} />
+        <PlanView plan={withChecklist} initialTheme={initialTheme} />
       </main>
     </>
   );

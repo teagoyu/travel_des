@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { TripPlan } from "@/lib/types";
 import type { TravelTheme } from "@/lib/theme";
 
@@ -21,7 +22,7 @@ export default function TripHero({ plan, theme = "childhood" }: { plan: TripPlan
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(#d2b36a_1px,transparent_1px),linear-gradient(90deg,#d2b36a_1px,transparent_1px)] [background-size:96px_96px]" />
       <div className="shell relative pt-[74px] pb-[42px] max-md:pt-[44px]">
         <div className="travel-editorial-hero__journal-label">我的旅行地图 <span>·</span> {request.origin} → {request.destination.replace(/^.*·\s*/, "")}</div>
-        <img className="travel-editorial-hero__character" src={`/themes/${theme}/character.svg`} alt="原创卡通旅行伙伴" />
+        <Image priority className="travel-editorial-hero__character" src={`/themes/${theme}/character.svg`} width={380} height={520} sizes="190px" alt="原创卡通旅行伙伴" />
         <div className="travel-editorial-hero__kicker flex items-center gap-3 text-[10px] font-bold tracking-[0.24em]"><span className="h-px w-8" /> THE OPEN ROAD / 路书预览</div>
         <h1 className="serif mt-5 mb-5 max-w-[800px] text-[clamp(52px,7vw,92px)] leading-[1.06] text-[#f1ede2] max-md:text-[clamp(40px,11vw,58px)]">
           {plan.title}

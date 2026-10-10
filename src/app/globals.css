@@ -114,6 +114,74 @@ body {
 .theme-home-hero__stat span { color: #66839b; }
 .theme-home--detective .theme-home-hero { background: linear-gradient(90deg, #ffffffd4, #ffffff48 70%, transparent); }
 .theme-home--fantasy .theme-home-hero { background: linear-gradient(90deg, #fffaffd8, #fffaff48 70%, transparent); }
+body[data-travel-theme] .home-step__number { color: #805d1c; font-weight: 700; }
+body[data-travel-theme] .home-step__title { color: #173451; }
+body[data-travel-theme] .home-step__body { color: #42617a; }
+.generation-page {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #173451;
+  background:
+    radial-gradient(circle at 82% 16%, rgba(245, 190, 95, .42), transparent 19%),
+    linear-gradient(135deg, #f6fbff 0%, #dff4fb 52%, #f4eafa 100%);
+}
+.generation-page::before {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(78, 115, 186, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(78, 115, 186, .08) 1px, transparent 1px);
+  background-size: 72px 72px;
+  content: "";
+}
+.generation-page__sun {
+  position: absolute;
+  top: 13%;
+  right: 12%;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: rgba(247, 196, 102, .35);
+  box-shadow: 0 0 0 18px rgba(247, 196, 102, .1), 0 18px 50px rgba(174, 126, 63, .12);
+}
+.generation-page__route {
+  position: absolute;
+  top: 34%;
+  left: 14%;
+  width: 72%;
+  height: 28%;
+  border: 3px dashed rgba(78, 115, 186, .3);
+  border-color: rgba(78, 115, 186, .3) transparent transparent;
+  border-radius: 50%;
+  transform: rotate(-7deg);
+}
+.generation-card {
+  border: 1px solid rgba(78, 115, 186, .25);
+  background: rgba(255, 255, 255, .76);
+  box-shadow: 0 24px 70px rgba(61, 99, 139, .16);
+  backdrop-filter: blur(10px);
+}
+.generation-mark {
+  border: 2px solid rgba(168, 92, 199, .55);
+  color: #8f46ad;
+  background: linear-gradient(145deg, #fff9ff, #e8f5fb);
+  box-shadow: 0 12px 30px rgba(143, 70, 173, .16);
+}
+.generation-card .eyebrow { color: #8f4d41; }
+.generation-card h1 { color: #173451; }
+.generation-copy { color: #42617a; }
+.generation-meta { color: #526a7f; }
+.generation-card .btn { border-color: rgba(48, 77, 118, .32); color: #193e61; background: rgba(255, 255, 255, .78); }
+.generation-card .btn:hover { border-color: #8f46ad; background: #fff9ff; }
+.generation-card .btn.btn-primary { border-color: #805d1c; color: #173451; background: #e6c06f; }
+.generation-steps { border-top: 1px solid rgba(78, 115, 186, .2); padding-top: 18px; }
+.generation-step { position: relative; padding: 11px 12px 11px 16px; border: 1px solid rgba(78, 115, 186, .18); border-radius: 13px; color: #718297; background: rgba(255, 255, 255, .55); font-size: 12px; }
+.generation-step::before { position: absolute; top: 16px; left: 6px; width: 5px; height: 5px; border-radius: 50%; background: #aab7c5; content: ""; }
+.generation-step.is-active { border-color: rgba(143, 70, 173, .38); color: #6e3d8b; background: #fff9ff; }
+.generation-step.is-active::before { background: #8f46ad; box-shadow: 0 0 0 4px rgba(143, 70, 173, .12); }
+@media (max-width: 700px) {
+  .generation-page__sun { top: 8%; right: -30px; width: 120px; height: 120px; }
+  .generation-page__route { left: -10%; width: 120%; }
+}
 .theme-page[data-travel-theme] { background-image: radial-gradient(circle at 8% 12%, color-mix(in srgb, var(--theme-bg, #dff4fb) 32%, transparent), transparent 28%), linear-gradient(135deg, #f7fbff 0%, var(--theme-bg, #dff4fb) 100%); }
 body[data-travel-theme] #plan-form > div { border-color: color-mix(in srgb, var(--theme-secondary, #2364aa) 28%, #ffffff); background: color-mix(in srgb, #ffffff 82%, var(--theme-bg, #dff4fb)); color: var(--theme-ink, #15385d); box-shadow: 0 24px 60px #2c5f7a22; }
 body[data-travel-theme] #plan-form .field > label, body[data-travel-theme] #plan-form .field-error { color: var(--theme-ink, #15385d); }
@@ -265,6 +333,108 @@ body[data-travel-theme] .travel-topbar .btn:hover { border-color: #a85cc7; backg
     width: calc(100% - 34px);
   }
 }
+
+/* 字体可读性：路线时间轴、地图说明与右侧风景卡统一提高对比度 */
+.plan-theme .travel-editorial-hero__meta span {
+  font-size: 13px !important;
+  font-weight: 700;
+}
+.plan-theme .travel-editorial-hero__footer {
+  font-size: 12px;
+}
+.plan-theme .route-story .route-phase-legend {
+  color: #405866 !important;
+  font-size: 13px !important;
+  font-weight: 600;
+}
+.plan-theme .route-story .route-story-map > p {
+  color: #5e6c65 !important;
+  font-size: 12px !important;
+}
+.plan-theme .route-story-map svg text[fill="#859285"] {
+  fill: #b9c8bb !important;
+  font-weight: 600;
+}
+.plan-theme .route-story-map svg text[fill="#aab6aa"] {
+  fill: #c5d0c6 !important;
+  font-weight: 600;
+}
+.plan-theme .route-story > .mt-7 .text-soft {
+  color: #5e6c65 !important;
+  font-size: 12px !important;
+  font-weight: 600;
+}
+.plan-theme .route-story > .mt-7 .serif {
+  color: #1d2d26 !important;
+  font-size: 18px !important;
+  font-weight: 700;
+}
+.plan-theme .editorial-recommendations .text-soft {
+  color: #526a7f !important;
+  font-size: 12px !important;
+}
+.plan-theme .editorial-recommendations button strong {
+  color: #193e61 !important;
+  font-size: 13px !important;
+}
+
+/* 浅色卡通路书中的普通按钮统一使用深蓝字，主按钮保留白字。 */
+.plan-theme .btn {
+  color: #193e61 !important;
+  border-color: rgba(48, 77, 118, .28) !important;
+  background: rgba(255, 255, 255, .68);
+}
+.plan-theme .btn.btn-primary {
+  color: #ffffff !important;
+  border-color: #8f46ad !important;
+  background: #8f46ad !important;
+}
+.plan-theme .btn:disabled {
+  color: #526477 !important;
+  background: rgba(255, 255, 255, .45);
+}
+
+/* 路线动画面板跟随浅色卡通手账主题，避免深色预览框割裂页面。 */
+.plan-theme .route-animation-panel {
+  border-color: rgba(67, 113, 142, .28) !important;
+  background: linear-gradient(145deg, rgba(255, 253, 246, .98), rgba(232, 244, 249, .96)) !important;
+  box-shadow: 0 18px 50px rgba(68, 99, 125, .14) !important;
+  color: #193e61;
+}
+.plan-theme .route-animation-header { border-color: rgba(93, 132, 152, .2) !important; }
+.plan-theme .route-animation-panel h2 { color: #193e61 !important; }
+.plan-theme .route-animation-panel .text-\[\#a5ada3\],
+.plan-theme .route-animation-copy { color: #60798a !important; }
+.plan-theme .route-animation-theme-badge {
+  border-color: rgba(192, 113, 95, .38) !important;
+  background: #fff1d4 !important;
+  color: #8f4d41 !important;
+}
+.plan-theme .route-animation-progress,
+.plan-theme .route-animation-panel [data-testid="route-animation-status"] {
+  border-color: rgba(83, 126, 147, .3) !important;
+  background: rgba(255, 255, 255, .62) !important;
+  color: #193e61 !important;
+}
+
+/* Small labels sit on pale paper; keep them dark enough at normal zoom. */
+.plan-theme .route-animation-panel .text-gold,
+.plan-theme .daily-editorial-card .daily-intensity {
+  color: #805d1c !important;
+}
+.plan-theme .text-muted,
+.plan-theme .text-soft,
+.plan-theme .roadbook-surface .text-muted,
+.plan-theme .roadbook-surface .text-soft,
+.plan-theme .daily-editorial-card .text-muted,
+.plan-theme .daily-editorial-card .text-soft {
+  color: #4b667d !important;
+}
+.plan-theme .route-animation-progress .bg-\[\#303a31\] { background: #d9e5e9 !important; }
+.plan-theme .route-animation-preview-button { border-color: rgba(83, 126, 147, .3) !important; background: #edf5f6 !important; }
+.plan-theme .route-animation-modal { background: rgba(38, 61, 79, .42) !important; }
+.plan-theme .route-animation-modal > div { border-color: rgba(83, 126, 147, .34) !important; background: #f7fbfa !important; color: #193e61; }
+.plan-theme .route-animation-media { background: #e9f1f2 !important; }
 
 .serif {
   font-family: var(--font-cartoon-display);

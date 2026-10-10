@@ -75,9 +75,11 @@ export default function GeneratingView({ jobId }: { jobId: string }) {
   const activeIndex = stepIndex >= 0 ? stepIndex : STEPS.length - 1;
 
   return (
-    <div className="grid min-h-[calc(100vh-72px)] place-items-center bg-[linear-gradient(#1114129a,#111412),url('/hero-mountain-road.png')] bg-cover bg-center px-5 py-11 text-center">
-      <div>
-        <div className="loading-icon serif mx-auto mb-7 grid size-[94px] place-items-center rounded-full border border-[#d9b46e77] text-[44px] text-gold">
+    <div className="generation-page grid min-h-[calc(100vh-72px)] place-items-center px-5 py-11 text-center">
+      <span className="generation-page__sun" aria-hidden="true" />
+      <span className="generation-page__route" aria-hidden="true" />
+      <div className="generation-card relative z-[1] w-full max-w-[760px] rounded-[28px] px-6 py-10 sm:px-12 sm:py-14">
+        <div className="generation-mark loading-icon serif mx-auto mb-7 grid size-[94px] place-items-center rounded-full text-[44px]">
           山
         </div>
         {failed ? (
@@ -86,7 +88,7 @@ export default function GeneratingView({ jobId }: { jobId: string }) {
             <h1 className="serif m-0 mt-3 mb-3 text-[clamp(30px,5vw,52px)] font-medium">
               这次没有生成出路书
             </h1>
-            <p className="mx-auto mb-8 max-w-[560px] text-sm leading-[1.8] text-muted">
+            <p className="generation-copy mx-auto mb-8 max-w-[560px] text-sm leading-[1.8]">
               {job?.errorCode
                 ? ERROR_TEXT[job.errorCode] ?? "生成过程中出现问题，请重试。"
                 : "任务不存在或不属于当前会话（会话 Cookie 可能已被清除）。"}
@@ -106,15 +108,15 @@ export default function GeneratingView({ jobId }: { jobId: string }) {
             <h1 className="serif m-0 mt-3 mb-3 text-[clamp(36px,5vw,66px)] font-medium">
               正在整理一份路书
             </h1>
-            <p className="m-0 text-[#cbd0c6]" aria-live="polite">
+            <p className="generation-copy m-0 text-[15px]" aria-live="polite">
               {STEPS[activeIndex].text}
             </p>
-            <p className="mt-2 text-xs text-soft">
+            <p className="generation-meta mt-2 text-xs">
               任务 {jobId} · 进度 {job?.progress ?? 0}%（刷新本页可恢复进度）
             </p>
-            <div className="mt-9 flex flex-wrap justify-center gap-6 text-[13px] text-muted">
+            <div className="generation-steps mt-9 grid gap-2 text-left sm:grid-cols-4">
               {STEPS.map((step, index) => (
-                <span key={step.key} className={index <= activeIndex ? "text-gold" : ""}>
+                <span key={step.key} className={`generation-step ${index <= activeIndex ? "is-active" : ""}`}>
                   {step.label}
                   <span className="sr-only">
                     {index <= activeIndex ? `（${JOB_STATE_LABEL[step.key]}）` : ""}
