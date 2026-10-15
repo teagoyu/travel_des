@@ -5,7 +5,7 @@ export default function HomeHero({ theme = "childhood" }: { theme?: TravelTheme 
   return (
     <div className={`theme-home-hero theme-home-hero--${theme} flex min-h-[590px] items-center overflow-hidden max-sm:min-h-[570px]`}>
       <div className="shell relative z-[1]">
-        <div className="max-w-[740px] py-[88px] max-sm:py-[66px] max-sm:pb-[150px]">
+        <div className="home-hero__content max-w-[740px] py-[88px] max-sm:py-[66px] max-sm:pb-[150px]">
           <p className="theme-home-hero__eyebrow m-0 text-xs tracking-[0.2em]">
             为下一次出发，写一份真正能走的路书
           </p>

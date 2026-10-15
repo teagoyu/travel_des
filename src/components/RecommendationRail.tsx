@@ -19,6 +19,36 @@ export default function RecommendationRail({ day, days, planId, readOnly = false
   const [attraction, setAttraction] = useState<Recommendation | null>(null);
   const [restaurant, setRestaurant] = useState<Recommendation | null>(null);
   const [sceneryImages, setSceneryImages] = useState<Record<string, string>>({});
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!planId || readOnly) { setSavedIds([]); return; }
+    fetch(`/api/plans/${encodeURIComponent(planId)}/saved-recommendations?day=${day.dayIndex}`)
+      .then((response) => response.ok ? response.json() as Promise<{ items?: { recommendationId: string }[] }> : { items: [] })
+      .then((data) => setSavedIds((data.items ?? []).map((item) => item.recommendationId)))
+      .catch(() => setSavedIds([]));
+  }, [day.dayIndex, planId, readOnly]);
+
+  const recommendationId = (item: Recommendation) => item.id ?? `${item.type ?? "recommendation"}-${item.name}`;
+  const toggleSaved = async (item: Recommendation) => {
+    if (!planId || readOnly || savingId) return;
+    const id = recommendationId(item);
+    const saved = savedIds.includes(id);
+    setSavingId(id);
+    setSavedIds((current) => saved ? current.filter((value) => value !== id) : [...current, id]);
+    try {
+      const response = saved
+        ? await fetch(`/api/plans/${encodeURIComponent(planId)}/saved-recommendations/${encodeURIComponent(id)}?day=${day.dayIndex}`, { method: "DELETE" })
+        : await fetch(`/api/plans/${encodeURIComponent(planId)}/saved-recommendations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dayIndex: day.dayIndex, recommendationId: id, name: item.name, type: item.type, address: item.address, imageUrl: item.imageUrl, navigationUrl: item.navigationUrl, source: item.source }) });
+      if (!response.ok) throw new Error("收藏失败");
+      window.dispatchEvent(new CustomEvent("roadbook:saved-recommendation", { detail: { dayIndex: day.dayIndex } }));
+    } catch {
+      setSavedIds((current) => saved ? [...current, id] : current.filter((value) => value !== id));
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!days?.length) return;
@@ -82,14 +112,14 @@ export default function RecommendationRail({ day, days, planId, readOnly = false
       <div><span className="block text-soft">路线提醒</span><strong className="mt-1 block text-ink">{day.risks.length ? "有 1 项提醒" : "路况平稳"}</strong><span className="mt-0.5 block truncate text-soft">{day.risks[0] ?? "保持弹性停留"}</span></div>
     </div>
     <div className="mt-4 grid gap-3">
-      <RailCard label="沿途风景" item={attraction} fallbackImage={themeImages[getDayImageTheme(day, Math.max(0, (days?.findIndex((item) => item.dayIndex === day.dayIndex) ?? 1)))]} />
-      <RailCard label="当地美食" item={restaurant} fallbackImage="/themes/city-night.png" emptyText="切换到真实路书后获取当地美食" />
-      <RailCard label="今晚住宿" item={day.hotels?.[0] ? { ...day.hotels[0], type: "住宿", imageUrl: day.hotels[0].imageUrl } : null} fallbackImage={themeImages[day.imageTheme ? day.imageTheme : "city-night"]} emptyText="路线核验后推荐落脚酒店" />
+      <RailCard label="沿途风景" item={attraction} fallbackImage={themeImages[getDayImageTheme(day, Math.max(0, (days?.findIndex((item) => item.dayIndex === day.dayIndex) ?? 1)))]} readOnly={readOnly} saved={attraction ? savedIds.includes(recommendationId(attraction)) : false} saving={savingId === (attraction ? recommendationId(attraction) : "")} onToggleSave={attraction ? () => toggleSaved(attraction) : undefined} />
+      <RailCard label="当地美食" item={restaurant} fallbackImage="/themes/city-night.png" emptyText="切换到真实路书后获取当地美食" readOnly={readOnly} saved={restaurant ? savedIds.includes(recommendationId(restaurant)) : false} saving={savingId === (restaurant ? recommendationId(restaurant) : "")} onToggleSave={restaurant ? () => toggleSaved(restaurant) : undefined} />
+      <RailCard label="今晚住宿" item={day.hotels?.[0] ? { ...day.hotels[0], type: "住宿", imageUrl: day.hotels[0].imageUrl } : null} fallbackImage={themeImages[day.imageTheme ? day.imageTheme : "city-night"]} emptyText="路线核验后推荐落脚酒店" readOnly={readOnly} saved={false} saving={false} />
     </div>
   </section>;
 }
 
-function RailCard({ label, item, fallbackImage, emptyText }: { label: string; item: Recommendation | null; fallbackImage: string; emptyText?: string }) {
+function RailCard({ label, item, fallbackImage, emptyText, readOnly, saved, saving, onToggleSave }: { label: string; item: Recommendation | null; fallbackImage: string; emptyText?: string; readOnly: boolean; saved: boolean; saving: boolean; onToggleSave?: () => void }) {
   return <article className="editorial-rail-card overflow-hidden rounded-[15px] border border-white/10 bg-[#202a2366]">
     <div className="relative h-[108px] overflow-hidden">
       <ResilientImage src={item?.imageUrl} fallbackImage={fallbackImage} alt={item?.name ? `${item.name} 图片` : label} />
@@ -100,6 +130,7 @@ function RailCard({ label, item, fallbackImage, emptyText }: { label: string; it
       <strong className="block text-sm text-ink">{item?.name ?? emptyText ?? "推荐待补充"}</strong>
       <p className="mt-1.5 min-h-8 text-[11px] leading-5 text-muted">{item?.address ?? (item ? "高德地点推荐" : "接入路线后自动补充")}</p>
       {item?.navigationUrl && <a href={item.navigationUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-[11px] text-gold underline underline-offset-4">查看导航 ↗</a>}
+      {item && <button type="button" className="mt-3 block text-[11px] text-gold underline underline-offset-4 disabled:cursor-not-allowed disabled:text-soft" onClick={onToggleSave} disabled={readOnly || saving} title={readOnly ? "示例路书仅供浏览" : undefined}>{readOnly ? "示例路书仅供浏览" : saving ? "保存中…" : saved ? "已加入当天 · 移除收藏" : "加入当天"}</button>}
     </div>
   </article>;
 }

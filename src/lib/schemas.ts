@@ -110,6 +110,22 @@ export const RevisionBodySchema = z.object({
   instruction: z.string().trim().min(1, "请描述修改意图").max(200),
 });
 
+export const VersionRollbackBodySchema = z.object({
+  targetVersion: z.number().int().min(1),
+  baseVersion: z.number().int().min(1),
+});
+
+export const SavedRecommendationBodySchema = z.object({
+  dayIndex: z.number().int().min(1),
+  recommendationId: z.string().trim().min(1).max(160),
+  name: z.string().trim().min(1).max(160),
+  type: z.string().max(80).optional(),
+  address: z.string().max(300).optional(),
+  imageUrl: z.string().max(1000).optional(),
+  navigationUrl: z.string().max(1000).optional(),
+  source: SourceRefSchema,
+});
+
 /** POST /api/plans/:id/share 请求体 */
 export const ShareBodySchema = z.object({
   expiresAt: z.string().optional(),

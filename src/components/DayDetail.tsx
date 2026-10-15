@@ -1,24 +1,37 @@
 "use client";
 
 import { formatBudgetRange, formatDuration } from "@/lib/tripForm";
-import type { DayPlan } from "@/lib/types";
+import type { DayEditDraft, DayPlan } from "@/lib/types";
 import { getDayImageTheme } from "@/lib/dayTheme";
 import type { TravelTheme } from "@/lib/theme";
+import { useState } from "react";
+import DayEditPanel from "./DayEditPanel";
+import DayTravelTools from "./DayTravelTools";
+import SavedRecommendations from "./SavedRecommendations";
 
 /** 每日行程详情：今天去哪 → 驾驶距离/时间 → 时间安排 → 摄影 → 住宿 → 风险（方案 §4 信息优先级） */
 export default function DayDetail({
   day,
   dayNumber,
-  onEdit,
   onPlanB,
+  onEditSubmit,
+  editBusy = false,
+  partySize = 2,
+  readOnly = false,
+  planId,
   theme = "childhood",
 }: {
   day: DayPlan;
   dayNumber: number; // 1-based
-  onEdit: () => void;
   onPlanB: () => void;
+  onEditSubmit?: (draft: DayEditDraft) => void;
+  editBusy?: boolean;
+  partySize?: number;
+  readOnly?: boolean;
+  planId?: string;
   theme?: TravelTheme;
 }) {
+  const [editing, setEditing] = useState(false);
   const legsDistance = day.legs.reduce((sum, leg) => sum + (leg.distanceKm ?? 0), 0);
   const legsDuration = day.legs.reduce((sum, leg) => sum + (leg.durationMinutes ?? 0), 0);
   const drivingDay = day.legs.length > 0;
@@ -41,7 +54,8 @@ export default function DayDetail({
       ];
 
   return (
-    <article
+    <>
+      <article
       id={`day-detail-${day.dayIndex}`}
       role="tabpanel"
       aria-label={`第 ${dayNumber} 天行程`}
@@ -70,7 +84,7 @@ export default function DayDetail({
           </h3>
           <p className="max-w-[620px] text-[13px] leading-[1.8] text-muted">{day.summary}</p>
         </div>
-        <button type="button" className="btn btn-small shrink-0 max-sm:mt-3" onClick={onEdit}>
+        <button type="button" className="btn btn-small shrink-0 max-sm:mt-3" onClick={() => setEditing(true)}>
           调整这一天 <span aria-hidden="true">↗</span>
         </button>
       </div>
@@ -113,6 +127,9 @@ export default function DayDetail({
         )}
         <div className="mt-2 text-[11px] text-soft">数据来源：{day.weather?.source.provider === "qweather" ? "和风天气" : "高德天气"} · 计划日期：{formatDate(day.date)}</div>
       </div>
+
+      <DayTravelTools day={day} partySize={partySize} />
+      <SavedRecommendations planId={planId} dayIndex={day.dayIndex} readOnly={readOnly} />
 
       <div className="grid gap-2">
         {schedule.map((item, scheduleIndex) => (
@@ -168,7 +185,9 @@ export default function DayDetail({
         </p>
       )}
 
-    </article>
+      </article>
+      {editing && onEditSubmit && <DayEditPanel day={day} readOnly={readOnly} onSubmit={onEditSubmit} onClose={() => setEditing(false)} busy={editBusy} />}
+    </>
   );
 }
 

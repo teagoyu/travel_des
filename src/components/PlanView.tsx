@@ -10,14 +10,16 @@ import DayDetail from "@/components/DayDetail";
 import BudgetPanel from "@/components/BudgetPanel";
 import Checklist from "@/components/Checklist";
 import TripSummary from "@/components/TripSummary";
+import TripHealthSummary from "@/components/TripHealthSummary";
 import DataSources from "@/components/DataSources";
 import RecommendationRail from "@/components/RecommendationRail";
 import ShareCard from "@/components/ShareCard";
+import VersionHistoryPanel from "@/components/VersionHistoryPanel";
 import ThemeBackground from "@/components/ThemeBackground";
 import Modal, { type ModalConfig } from "@/components/Modal";
 import { showToast } from "@/components/Toast";
 import { getTravelThemeTokens, type TravelTheme } from "@/lib/theme";
-import type { TripPlan } from "@/lib/types";
+import type { DayEditDraft, TripPlan } from "@/lib/types";
 
 /** 路书详情交互区：日期导航 + 每日详情 + 调整弹窗（阶段 B：修改意图走 revisions API） */
 export default function PlanView({ plan, readOnly = false, initialTheme = "childhood" }: { plan: TripPlan; readOnly?: boolean; initialTheme?: TravelTheme }) {
@@ -29,6 +31,7 @@ export default function PlanView({ plan, readOnly = false, initialTheme = "child
   const [shareBusy, setShareBusy] = useState(false);
   const [shareImageUrl, setShareImageUrl] = useState<string | null>(null);
   const [shareImageName, setShareImageName] = useState("旅行路线.png");
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [animationJob, setAnimationJob] = useState<{ jobId: string; status: string; progress?: number; mp4Url?: string; gifUrl?: string; error?: string } | null>(null);
   const [animationPreviewOpen, setAnimationPreviewOpen] = useState(false);
   const [theme, setTheme] = useState<TravelTheme>(initialTheme);
@@ -212,18 +215,35 @@ export default function PlanView({ plan, readOnly = false, initialTheme = "child
     }
   };
 
-  const openEditModal = () => {
-    setModal({
-      title: `调整第 ${selectedDay + 1} 天`,
-      description:
-        "选择一种调整意图，系统会生成新版本并显示变更摘要；可随时对比或回退（阶段 E 提供版本对比视图）。",
-      suggestions: ["返程增加百色住宿", "今天少开一点", "把日落拍摄留久一些", "增加轻徒步", "改成下雨备选方案"].map(
-        (label) => ({
-          label,
-          onSelect: () => submitRevision(label),
-        }),
-      ),
-    });
+  const submitDayEdit = async (draft: DayEditDraft) => {
+    if (readOnly) { showToast("示例路书仅供浏览，请创建自己的路书后调整行程"); return; }
+    if (revisionBusy) return;
+    setRevisionBusy(true);
+    const stopText = draft.stops.map((stop, index) => `${index + 1}. ${stop.name}`).join("；");
+    const baseInstruction = `调整第 ${draft.dayIndex} 天：出发时间 ${draft.departureTime}；驾驶上限 ${draft.maxDriveHours} 小时；住宿城市 ${draft.stayCity}；停留点顺序：${stopText}。请重新核验路线、耗时、天气风险和预算，并保留可执行的安排。`;
+    try {
+      const savedResponse = await fetch(`/api/plans/${encodeURIComponent(plan.id)}/saved-recommendations?day=${draft.dayIndex}`);
+      const savedRecommendations = savedResponse.ok ? (await savedResponse.json() as { items?: { name: string; type?: string }[] }).items ?? [] : [];
+      const savedText = savedRecommendations.length ? ` 当天收藏请优先保留：${savedRecommendations.map((item) => `${item.name}（${item.type ?? "地点"}）`).join("、")}；如果与驾驶上限冲突，请解释取舍。` : "";
+      const instruction = `${baseInstruction}${savedText}`;
+      const res = await fetch(`/api/plans/${encodeURIComponent(plan.id)}/revisions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseVersion: plan.version, dayIndex: draft.dayIndex, instruction }),
+      });
+      if (res.status === 409) { showToast("路书已有更新版本，正在刷新…"); router.refresh(); return; }
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error?.message ?? `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { version: number; changes: string[] };
+      showToast(`已生成 v${data.version}：${data.changes.join("；")}`);
+      router.refresh();
+    } catch (error) {
+      showToast(`修改失败：${error instanceof Error ? error.message : "网络错误"}`);
+    } finally {
+      setRevisionBusy(false);
+    }
   };
 
   const openPlanBModal = (targetDay = selectedDay) => {
@@ -257,6 +277,7 @@ export default function PlanView({ plan, readOnly = false, initialTheme = "child
               {animationJob?.status === "rendering" ? `路线动画 ${animationJob.progress ?? 0}%` : "生成路线动画"}
             </button>
             <button type="button" className="btn btn-small" onClick={copyShareCopy}>复制分享文案</button>
+            <button type="button" className="btn btn-small" onClick={() => setVersionHistoryOpen(true)}>版本历史</button>
           </div>
         </div>
       </div>
@@ -343,8 +364,12 @@ export default function PlanView({ plan, readOnly = false, initialTheme = "child
                   <DayDetail
                     day={plan.days[selectedDay]}
                     dayNumber={selectedDay + 1}
-                    onEdit={openEditModal}
                     onPlanB={() => openPlanBModal(selectedDay)}
+                    onEditSubmit={submitDayEdit}
+                    editBusy={revisionBusy}
+                    partySize={plan.request.partySize}
+                    readOnly={readOnly}
+                    planId={readOnly ? undefined : plan.id}
                     theme={theme}
                   />
                 </div>
@@ -357,6 +382,10 @@ export default function PlanView({ plan, readOnly = false, initialTheme = "child
           <div className="editorial-rail grid gap-6 md:sticky md:top-6 max-md:grid-cols-1 max-lg:grid-cols-2 max-lg:gap-7">
             <RecommendationRail days={plan.days} day={plan.days[selectedDay] ?? plan.days[0]} planId={readOnly ? undefined : plan.id} readOnly={readOnly} />
             <TripSummary plan={plan} />
+            <TripHealthSummary plan={plan} onSelectDay={(index) => {
+              setSelectedDay(index);
+              document.getElementById(`day-detail-${plan.days[index]?.dayIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }} />
             <BudgetPanel plan={plan} />
             <Checklist planId={plan.id} items={plan.checklist} readOnly={readOnly} />
           </div>
@@ -375,6 +404,7 @@ export default function PlanView({ plan, readOnly = false, initialTheme = "child
       </div>
 
       {modal && <Modal config={modal} open onClose={() => setModal(null)} />}
+      {versionHistoryOpen && <VersionHistoryPanel planId={plan.id} currentVersion={plan.version} readOnly={readOnly} onClose={() => setVersionHistoryOpen(false)} />}
       {shareImageUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050806]/85 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="分享截图预览">
           <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-line bg-[#172019] p-4 shadow-2xl">

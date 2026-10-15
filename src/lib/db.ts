@@ -16,7 +16,7 @@ import { DatabaseSync } from "node:sqlite";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import type { TripPlan } from "./types";
+import type { PlanVersionMeta, SavedRecommendation, TripPlan } from "./types";
 
 // ── 连接管理 ────────────────────────────────────────────────────────────────
 
@@ -59,6 +59,14 @@ function migrate(db: DatabaseSync) {
       PRIMARY KEY (plan_id, version)
     );
 
+    CREATE TABLE IF NOT EXISTS plan_version_meta (
+      plan_id       TEXT NOT NULL REFERENCES plans(id),
+      version       INTEGER NOT NULL,
+      summary_json  TEXT NOT NULL DEFAULT '[]',
+      created_at    TEXT NOT NULL,
+      PRIMARY KEY (plan_id, version)
+    );
+
     CREATE TABLE IF NOT EXISTS jobs (
       job_id        TEXT PRIMARY KEY,
       plan_id       TEXT NOT NULL REFERENCES plans(id),
@@ -86,9 +94,24 @@ function migrate(db: DatabaseSync) {
       revoked_at    TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS saved_recommendations (
+      plan_id           TEXT NOT NULL REFERENCES plans(id),
+      day_index         INTEGER NOT NULL,
+      recommendation_id TEXT NOT NULL,
+      name              TEXT NOT NULL,
+      type              TEXT,
+      address           TEXT,
+      image_url         TEXT,
+      navigation_url    TEXT,
+      source_json       TEXT NOT NULL,
+      created_at        TEXT NOT NULL,
+      PRIMARY KEY (plan_id, day_index, recommendation_id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_plans_session ON plans(session_id);
     CREATE INDEX IF NOT EXISTS idx_jobs_session ON jobs(session_id);
     CREATE INDEX IF NOT EXISTS idx_share_plan ON share_tokens(plan_id);
+    CREATE INDEX IF NOT EXISTS idx_saved_recommendations_plan_day ON saved_recommendations(plan_id, day_index);
   `);
 }
 
@@ -130,10 +153,37 @@ export function createPlanRow(sessionId: string, planId: string, now: string): v
   ).run(planId, sessionId, now, now);
 }
 
-export function insertVersion(plan: TripPlan): void {
+export function insertVersion(plan: TripPlan, summary: string[] = []): void {
+  const createdAt = new Date().toISOString();
   db.prepare(
     "INSERT OR REPLACE INTO plan_versions (plan_id, version, data, created_at) VALUES (?, ?, ?, ?)",
-  ).run(plan.id, plan.version, JSON.stringify(plan), new Date().toISOString());
+  ).run(plan.id, plan.version, JSON.stringify(plan), createdAt);
+  db.prepare(
+    "INSERT OR REPLACE INTO plan_version_meta (plan_id, version, summary_json, created_at) VALUES (?, ?, ?, ?)",
+  ).run(plan.id, plan.version, JSON.stringify(summary), createdAt);
+}
+
+export function listPlanVersions(planId: string): PlanVersionMeta[] {
+  const rows = db.prepare(`
+    SELECT v.version, v.created_at, COALESCE(m.summary_json, '[]') AS summary_json,
+      CASE WHEN v.version = p.current_version THEN 1 ELSE 0 END AS is_current
+    FROM plan_versions v
+    JOIN plans p ON p.id = v.plan_id
+    LEFT JOIN plan_version_meta m ON m.plan_id = v.plan_id AND m.version = v.version
+    WHERE v.plan_id = ? ORDER BY v.version DESC
+  `).all(planId) as { version: number; created_at: string; summary_json: string; is_current: number }[];
+  return rows.map((row) => ({ planId, version: row.version, summary: JSON.parse(row.summary_json) as string[], createdAt: row.created_at, isCurrent: row.is_current === 1 }));
+}
+
+export function getVersionMeta(planId: string, version: number): PlanVersionMeta | undefined {
+  const row = db.prepare(`
+    SELECT v.version, v.created_at, COALESCE(m.summary_json, '[]') AS summary_json,
+      CASE WHEN v.version = p.current_version THEN 1 ELSE 0 END AS is_current
+    FROM plan_versions v JOIN plans p ON p.id = v.plan_id
+    LEFT JOIN plan_version_meta m ON m.plan_id = v.plan_id AND m.version = v.version
+    WHERE v.plan_id = ? AND v.version = ?
+  `).get(planId, version) as { version: number; created_at: string; summary_json: string; is_current: number } | undefined;
+  return row ? { planId, version: row.version, summary: JSON.parse(row.summary_json) as string[], createdAt: row.created_at, isCurrent: row.is_current === 1 } : undefined;
 }
 
 export function getPlanRow(
@@ -170,6 +220,35 @@ export function listPlanIdsBySession(sessionId: string): string[] {
     .prepare("SELECT id FROM plans WHERE session_id = ? ORDER BY created_at DESC")
     .all(sessionId) as { id: string }[];
   return rows.map((r) => r.id);
+}
+
+export function listSavedRecommendations(planId: string, dayIndex?: number): SavedRecommendation[] {
+  const rows = (dayIndex === undefined
+    ? db.prepare("SELECT * FROM saved_recommendations WHERE plan_id = ? ORDER BY day_index, created_at").all(planId)
+    : db.prepare("SELECT * FROM saved_recommendations WHERE plan_id = ? AND day_index = ? ORDER BY created_at").all(planId, dayIndex)) as {
+      plan_id: string; day_index: number; recommendation_id: string; name: string; type: string | null;
+      address: string | null; image_url: string | null; navigation_url: string | null; source_json: string; created_at: string;
+    }[];
+  return rows.map((row) => ({
+    planId: row.plan_id, dayIndex: row.day_index, recommendationId: row.recommendation_id, name: row.name,
+    type: row.type ?? undefined, address: row.address ?? undefined, imageUrl: row.image_url ?? undefined,
+    navigationUrl: row.navigation_url ?? undefined, source: JSON.parse(row.source_json), createdAt: row.created_at,
+  }));
+}
+
+export function saveRecommendation(item: Omit<SavedRecommendation, "createdAt">): SavedRecommendation {
+  const createdAt = new Date().toISOString();
+  db.prepare(`
+    INSERT OR IGNORE INTO saved_recommendations
+      (plan_id, day_index, recommendation_id, name, type, address, image_url, navigation_url, source_json, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(item.planId, item.dayIndex, item.recommendationId, item.name, item.type ?? null, item.address ?? null, item.imageUrl ?? null, item.navigationUrl ?? null, JSON.stringify(item.source), createdAt);
+  return listSavedRecommendations(item.planId, item.dayIndex).find((saved) => saved.recommendationId === item.recommendationId) ?? { ...item, createdAt };
+}
+
+export function removeSavedRecommendation(planId: string, dayIndex: number, recommendationId: string): boolean {
+  const result = db.prepare("DELETE FROM saved_recommendations WHERE plan_id = ? AND day_index = ? AND recommendation_id = ?").run(planId, dayIndex, recommendationId);
+  return Number(result.changes) > 0;
 }
 
 // ── 生成任务 ────────────────────────────────────────────────────────────────

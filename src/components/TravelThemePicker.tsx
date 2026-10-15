@@ -8,7 +8,8 @@ export default function TravelThemePicker({ value, onChange }: Props) {
   return (
     <div className="theme-picker" aria-label="选择旅行主题">
       <span className="theme-picker__label">旅行手账风格</span>
-      <div className="theme-picker__options" role="radiogroup" aria-label="旅行主题">
+      <div className="theme-picker__panel">
+        <div className="theme-picker__options" role="radiogroup" aria-label="旅行主题">
         {TRAVEL_THEMES.map((theme) => {
           const tokens = TRAVEL_THEME_TOKENS[theme];
           return (
@@ -29,6 +30,7 @@ export default function TravelThemePicker({ value, onChange }: Props) {
             </button>
           );
         })}
+        </div>
       </div>
     </div>
   );

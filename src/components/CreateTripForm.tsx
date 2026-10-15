@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { showToast } from "./Toast";
+import DatePickerField from "./DatePickerField";
 import {
   ACCOMMODATION_OPTIONS,
   beijingDateOffset,
@@ -160,22 +161,7 @@ export default function CreateTripForm() {
         <div className="grid grid-cols-4 gap-4 max-md:grid-cols-2 max-sm:grid-cols-2 max-sm:gap-3">
           <PlacePicker id="from" label="从哪里出发" value={values.origin} onChange={(value) => setField("origin", value)} error={errors.origin} />
           <PlacePicker id="to" label="想去哪里" value={values.destination} onChange={(value) => setField("destination", value)} error={errors.destination} />
-          <div className="field">
-            <label htmlFor="date">出发日期</label>
-            <input
-              id="date"
-              type="date"
-              value={values.departDate}
-              onChange={(e) => setField("departDate", e.target.value)}
-              aria-invalid={errors.departDate ? "true" : undefined}
-              aria-describedby={errors.departDate ? "date-error" : undefined}
-            />
-            {errors.departDate && (
-              <p id="date-error" className="field-error" role="alert">
-                {errors.departDate}
-              </p>
-            )}
-          </div>
+          <DatePickerField id="date" value={values.departDate} onChange={(value) => setField("departDate", value)} error={errors.departDate} />
           <div className="field">
             <label htmlFor="days">旅行天数</label>
             <select

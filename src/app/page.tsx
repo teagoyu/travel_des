@@ -21,7 +21,7 @@ export default function HomePage() {
       <main>
         <TravelPlannerHero />
         <div className="shell relative z-[2] -mt-[72px]">
-          <div id="plan-form">
+          <div id="plan-form" className="home-form-shell">
             <CreateTripForm />
           </div>
           <div className="home-steps mb-20 mt-14 grid gap-7 md:grid-cols-3 max-md:mb-16 max-md:mt-10">

@@ -109,6 +109,49 @@ export type DayPlan = {
   budgetCny?: { min: number; max: number };
 };
 
+export type CostRange = {
+  min: number;
+  max: number;
+  status: "estimated" | "needs_check";
+};
+
+export type PlanVersionMeta = {
+  planId: string;
+  version: number;
+  summary: string[];
+  createdAt: string;
+  isCurrent?: boolean;
+};
+
+export type PlanVersionDiff = {
+  dayIndex: number;
+  kind: "added" | "changed" | "removed";
+  label: string;
+  from?: string;
+  to?: string;
+};
+
+export type SavedRecommendation = {
+  planId: string;
+  dayIndex: number;
+  recommendationId: string;
+  name: string;
+  type?: string;
+  address?: string;
+  imageUrl?: string;
+  navigationUrl?: string;
+  source: SourceRef;
+  createdAt: string;
+};
+
+export type DayEditDraft = {
+  dayIndex: number;
+  departureTime: string;
+  maxDriveHours: number;
+  stayCity: string;
+  stops: { id: string; name: string; note?: string }[];
+};
+
 export type TripPlan = {
   id: string;
   version: number;
