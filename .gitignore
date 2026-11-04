@@ -23,6 +23,11 @@
 # production
 /build
 
+# generated / design artifacts (not shipped with the app)
+/design-exports/
+/public/generated/
+/docs/screenshots/
+
 # misc
 .DS_Store
 *.pem

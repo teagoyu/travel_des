@@ -119,10 +119,6 @@ const db = openDb();
 
 // ── ID 生成 ─────────────────────────────────────────────────────────────────
 
-export function newId(prefix: string): string {
-  return `${prefix}-${randomBytes(8).toString("hex")}`;
-}
-
 export function newShareToken(): string {
   return randomBytes(16).toString("base64url");
 }
@@ -136,15 +132,6 @@ export function ensureSession(sessionCookieHash: string): void {
 }
 
 // ── 路书与版本 ──────────────────────────────────────────────────────────────
-
-export function createPlan(sessionId: string, plan: TripPlan): void {
-  const now = new Date().toISOString();
-  db.prepare(
-    "INSERT INTO plans (id, session_id, current_version, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-  ).run(plan.id, sessionId, plan.version, now, now);
-  insertVersion(plan);
-  replaceChecklist(plan.id, plan.checklist);
-}
 
 /** 仅创建 plan 主表行（生成任务启动时，版本稍后由 finalize 写入） */
 export function createPlanRow(sessionId: string, planId: string, now: string): void {
@@ -175,17 +162,6 @@ export function listPlanVersions(planId: string): PlanVersionMeta[] {
   return rows.map((row) => ({ planId, version: row.version, summary: JSON.parse(row.summary_json) as string[], createdAt: row.created_at, isCurrent: row.is_current === 1 }));
 }
 
-export function getVersionMeta(planId: string, version: number): PlanVersionMeta | undefined {
-  const row = db.prepare(`
-    SELECT v.version, v.created_at, COALESCE(m.summary_json, '[]') AS summary_json,
-      CASE WHEN v.version = p.current_version THEN 1 ELSE 0 END AS is_current
-    FROM plan_versions v JOIN plans p ON p.id = v.plan_id
-    LEFT JOIN plan_version_meta m ON m.plan_id = v.plan_id AND m.version = v.version
-    WHERE v.plan_id = ? AND v.version = ?
-  `).get(planId, version) as { version: number; created_at: string; summary_json: string; is_current: number } | undefined;
-  return row ? { planId, version: row.version, summary: JSON.parse(row.summary_json) as string[], createdAt: row.created_at, isCurrent: row.is_current === 1 } : undefined;
-}
-
 export function getPlanRow(
   planId: string,
 ): { id: string; session_id: string; current_version: number } | undefined {
@@ -213,13 +189,6 @@ export function setCurrentVersion(planId: string, version: number): void {
     new Date().toISOString(),
     planId,
   );
-}
-
-export function listPlanIdsBySession(sessionId: string): string[] {
-  const rows = db
-    .prepare("SELECT id FROM plans WHERE session_id = ? ORDER BY created_at DESC")
-    .all(sessionId) as { id: string }[];
-  return rows.map((r) => r.id);
 }
 
 export function listSavedRecommendations(planId: string, dayIndex?: number): SavedRecommendation[] {
@@ -356,12 +325,6 @@ export function revokeShareToken(planId: string, token: string): boolean {
     .prepare("UPDATE share_tokens SET revoked_at = ? WHERE token = ? AND plan_id = ? AND revoked_at IS NULL")
     .run(new Date().toISOString(), token, planId);
   return Number(result.changes) > 0;
-}
-
-export function listShareTokens(planId: string): { token: string; expires_at: string | null; revoked_at: string | null }[] {
-  return db
-    .prepare("SELECT token, expires_at, revoked_at FROM share_tokens WHERE plan_id = ? ORDER BY created_at DESC")
-    .all(planId) as { token: string; expires_at: string | null; revoked_at: string | null }[];
 }
 
 // ── 会话 Cookie 哈希 ────────────────────────────────────────────────────────
