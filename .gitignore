@@ -1,6 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# ── dependencies ─────────────────────────────────────────────
 /node_modules
 /.pnp
 .pnp.*
@@ -9,41 +7,64 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/.pnpm-store/
+.pnpm-store/
 
-# testing
-/coverage
-
-# next.js
+# ── Next.js build output ─────────────────────────────────────
 /.next/
 /.next-dev/
-/.next.bak-weather/
-/.data/
+/.next.bak-*/
 /out/
-
-# production
 /build
+/.turbo/
 
-# generated / design artifacts (not shipped with the app)
+# ── local data & runtime state ───────────────────────────────
+/.data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# ── env & secrets ────────────────────────────────────────────
+.env*
+!.env.example
+!.env.local.example
+*.pem
+*.key
+
+# ── generated media / design artifacts ───────────────────────
 /design-exports/
 /public/generated/
 /docs/screenshots/
 
-# misc
-.DS_Store
-*.pem
+# ── test & tooling caches ────────────────────────────────────
+/coverage/
+/playwright-report/
+/test-results/
+.eslintcache
+*.tsbuildinfo
+next-env.d.ts
 
-# debug
+# ── logs ─────────────────────────────────────────────────────
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# ── editor / OS ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 
-# vercel
+# ── deployments ──────────────────────────────────────────────
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ── local agent scratch ──────────────────────────────────────
+.superpowers/
+.claude/
+.cursor/
